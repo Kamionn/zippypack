@@ -17,8 +17,10 @@ use zippy::decompress::{decompress_archive, DecompressionOptions};
 use zippy::image::{create_image, extract_image, ImageOptions, ExtractOptions};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Configuration du logging
-    env_logger::init();
+    // Initialize tracing
+    tracing_subscriber::fmt()
+        .with_env_filter("zippy=info")
+        .init();
 
     // Exemple 1: Compression traditionnelle
     println!("=== Compression traditionnelle ===");
