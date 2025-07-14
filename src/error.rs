@@ -2,12 +2,30 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CompressionError {
-    #[error("Erreur de compression: {0}")]
-    CompressionError(String),
+    #[error("Compression failed: {0}")]
+    CompressionFailed(String),
     
-    #[error("Erreur d'entrée/sortie: {0}")]
-    IoError(#[from] std::io::Error),
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
     
-    #[error("Erreur de dictionnaire: {0}")]
+    #[error("Dictionary generation failed: {0}")]
     DictionaryError(String),
+    
+    #[error("Invalid file format")]
+    InvalidFormat,
+    
+    #[error("Path traversal attack detected")]
+    PathTraversal,
+}
+
+#[derive(Error, Debug)]
+pub enum DecompressionError {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    
+    #[error("Invalid file format")]
+    InvalidFormat,
+    
+    #[error("Decompression failed: {0}")]
+    DecompressionFailed(String),
 } 
