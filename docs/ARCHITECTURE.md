@@ -1,141 +1,145 @@
-# Architecture de ZippyPack
+# ZippyPack Architecture
 
-**Créé par : Kamion (Matthéo Le Fur)**  
-**Date : 14/07/2025**  
-**Version : 1.0.0**
+**Created by: Kamion (Matthéo Le Fur)**  
+**Date: July 14, 2025**  
+**Version: 1.0.0**
 
-## Vue d'ensemble
+## Overview
 
-ZippyPack est architecturé autour de plusieurs modules spécialisés qui collaborent pour offrir une compression avancée avec déduplication par blocs.
+ZippyPack is architected around several specialized modules that collaborate to provide advanced compression with block-level deduplication.
 
-## Structure des modules
+## Module Structure
 
 ### 🏗️ Core Modules
 
 #### `src/main.rs`
-- **Rôle** : Interface CLI principale
-- **Responsabilités** : Parsing des arguments, dispatch des commandes
-- **Dépendances** : clap, env_logger
+- **Role**: Main CLI interface
+- **Responsibilities**: Argument parsing, command dispatch
+- **Dependencies**: clap, env_logger
 
 #### `src/lib.rs`
-- **Rôle** : Exposition publique des modules
-- **Responsabilités** : Organisation des exports, tests
+- **Role**: Public module exposure
+- **Responsibilities**: Export organization, tests
 
 #### `src/compress.rs`
-- **Rôle** : Compression traditionnelle (.zpp)
-- **Responsabilités** : Compression par dossiers, détection de types
-- **Algorithmes** : zstd, solid compression
+- **Role**: Traditional compression (.zpp)
+- **Responsibilities**: Folder compression, type detection
+- **Algorithms**: zstd, solid compression
 
 #### `src/decompress.rs`
-- **Rôle** : Décompression des archives .zpp
-- **Responsabilités** : Restauration des fichiers, validation d'intégrité
-- **Sécurité** : Sanitization des chemins
+- **Role**: .zpp archive decompression
+- **Responsibilities**: File restoration, integrity validation
+- **Security**: Path sanitization
 
 #### `src/image.rs` 🚀
-- **Rôle** : Système d'images avec déduplication
-- **Responsabilités** : Création/extraction d'images .zpak
-- **Innovation** : Déduplication par blocs de 64KB
+- **Role**: Image system with deduplication
+- **Responsibilities**: .zpak image creation/extraction
+- **Innovation**: 64KB block-level deduplication
 
 #### `src/profile.rs`
-- **Rôle** : Profils de compression par type
-- **Responsabilités** : Optimisation contextuelle
-- **Types supportés** : Text, Binary, GameEngine, etc.
+- **Role**: Type-specific compression profiles
+- **Responsibilities**: Contextual optimization
+- **Supported Types**: Text, Binary, GameEngine, etc.
 
 #### `src/error.rs`
-- **Rôle** : Gestion d'erreurs typée
-- **Responsabilités** : Définition des erreurs spécifiques
+- **Role**: Typed error handling
+- **Responsibilities**: Specific error definitions
 
-## Flux de données
+## Data Flow
 
-### Compression traditionnelle
+### Traditional Compression
 ```
-Dossier → Scan files → Type detection → Compression → .zpp
-```
-
-### Système d'images
-```
-Dossier → Scan files → Block splitting → Deduplication → Index → .zpak
+Folder → Scan files → Type detection → Compression → .zpp
 ```
 
-### Décompression
+### Image System
+```
+Folder → Scan files → Block splitting → Deduplication → Index → .zpak
+```
+
+### Decompression
 ```
 .zpp/.zpak → Read index → Decompress blocks → Restore files
 ```
 
-## Formats de fichiers
+## File Formats
 
-### Format .zpp (Compression traditionnelle)
-1. **Header** : Taille dictionnaire (8 bytes)
-2. **Dictionnaire** : Données du dictionnaire zstd
-3. **Données compressées** : Flux zstd solid
+### .zpp Format (Traditional Compression)
+1. **Header**: Dictionary size (8 bytes)
+2. **Dictionary**: zstd dictionary data
+3. **Compressed Data**: Solid zstd stream
 
-### Format .zpak (Système d'images)
-1. **Header** : Version, stats, métadonnées (48 bytes)
-2. **Index des blocs** : Hash + position + taille de chaque bloc
-3. **Données compressées** : Blocs zstd dédupliqués
-4. **Métadonnées fichiers** : Arborescence + références aux blocs
+### .zpak Format (Image System)
+1. **Header**: Version, stats, metadata (48 bytes)
+2. **Block Index**: Hash + position + size of each block
+3. **Compressed Data**: Deduplicated zstd blocks
+4. **File Metadata**: Directory tree + block references
 
-## Algorithmes clés
+## Key Algorithms
 
-### Déduplication par blocs
-- **Taille de bloc** : 64KB (65536 bytes)
-- **Hash** : DefaultHasher (simple mais efficace)
-- **Stockage** : HashMap<BlockHash, DataBlock>
+### Block-Level Deduplication
+- **Block Size**: 64KB (65536 bytes)
+- **Hash**: DefaultHasher (simple but efficient)
+- **Storage**: HashMap<BlockHash, DataBlock>
 
-### Compression zstd
-- **Niveaux** : 1-22 (défaut: 22)
-- **Mode solid** : Disponible pour .zpp
-- **Dictionnaires** : Génération automatique
+### zstd Compression
+- **Levels**: 1-22 (default: 22)
+- **Solid Mode**: Available for .zpp
+- **Dictionaries**: Automatic generation
 
-## Performances
+## Performance
 
-### Complexité temporelle
-- **Compression** : O(n) avec n = taille totale
-- **Déduplication** : O(n/64KB) pour l'indexation
-- **Décompression** : O(n) linéaire
+### Time Complexity
+- **Compression**: O(n) where n = total size
+- **Deduplication**: O(n/64KB) for indexing
+- **Decompression**: O(n) linear
 
-### Complexité spatiale
-- **Mémoire** : O(nombre de blocs uniques)
-- **Stockage** : O(données uniques après déduplication)
+### Space Complexity
+- **Memory**: O(number of unique blocks)
+- **Storage**: O(unique data after deduplication)
 
-## Extensibilité
+## Extensibility
 
-### Ajout de nouveaux formats
-1. Créer un nouveau module dans `src/`
-2. Définir les structures Options
-3. Implémenter les fonctions create/extract
-4. Ajouter les commandes CLI dans `main.rs`
+### Adding New Formats
+1. Create new module in `src/`
+2. Define Options structures
+3. Implement create/extract functions
+4. Add CLI commands in `main.rs`
 
-### Nouveaux algorithmes
-1. Modifier `compress.rs` pour l'intégration
-2. Ajouter les profils dans `profile.rs`
-3. Mettre à jour les tests
+### New Algorithms
+1. Modify `compress.rs` for integration
+2. Add profiles in `profile.rs`
+3. Update tests
 
-## Sécurité
+## Security
 
 ### Sanitization
-- **Chemins** : Validation des caractères Windows/Unix
-- **Taille** : Limites sur les blocs et fichiers
-- **Intégrité** : Checksums sur les données critiques
+- **Paths**: Windows/Unix character validation
+- **Size**: Limits on blocks and files
+- **Integrity**: Checksums on critical data
 
-### Vulnérabilités atténuées
-- **Path traversal** : Nettoyage des chemins relatifs
-- **Zip bombs** : Limites de décompression
-- **Memory exhaustion** : Streaming des gros fichiers
+### Mitigated Vulnerabilities
+- **Path traversal**: Relative path cleaning
+- **Zip bombs**: Decompression limits
+- **Memory exhaustion**: Large file streaming
 
-## Tests
+## Testing
 
-### Structure des tests
-- `src/tests/compression_tests.rs` : Tests unitaires
-- `examples/` : Exemples d'utilisation
-- `tools/` : Utilitaires de test
+### Test Structure
+- `src/tests/compression_tests.rs`: Unit tests
+- `examples/`: Usage examples
+- `tools/`: Test utilities
 
-### Couverture
-- ✅ Compression/décompression basic
-- ✅ Système d'images
+### Coverage
+- ✅ Basic compression/decompression
+- ✅ Image system
 - ✅ Round-trip integrity
 - ✅ Error handling
 
+## 🌍 Translations
+
+- [Français (French)](ARCHITECTURE_FR.md)
+
 ---
 
-Cette architecture permet une évolution modulaire tout en maintenant des performances optimales et une sécurité robuste.
+This architecture enables modular evolution while maintaining optimal performance and robust security.
