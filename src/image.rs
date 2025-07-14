@@ -152,10 +152,25 @@ pub fn create_image(options: &ImageOptions) -> Result<()> {
             .duration_since(std::time::UNIX_EPOCH)?
             .as_secs();
         
-        // Lecture et découpage en blocs
-        let mut file = File::open(path)?;
+        // Optimized reading with buffered I/O for large files
+        use std::io::BufReader;
+        
+        let file = File::open(path)?;
+        let mut reader = BufReader::new(file);
         let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer)?;
+        
+        // For large files, read in chunks to avoid memory issues
+        if size > 10 * 1024 * 1024 { // 10MB threshold
+            const CHUNK_SIZE: usize = 1024 * 1024; // 1MB chunks
+            let mut chunk = vec![0u8; CHUNK_SIZE];
+            loop {
+                let bytes_read = reader.read(&mut chunk)?;
+                if bytes_read == 0 { break; }
+                buffer.extend_from_slice(&chunk[..bytes_read]);
+            }
+        } else {
+            reader.read_to_end(&mut buffer)?;
+        }
         
         let blocks = split_into_blocks(&buffer);
         let mut file_blocks = Vec::new();
