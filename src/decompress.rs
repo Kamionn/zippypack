@@ -5,13 +5,7 @@ use anyhow::{Result, Context};
 use log::info;
 use zstd::decode_all;
 
-#[derive(Debug, thiserror::Error)]
-pub enum DecompressionError {
-    #[error("Erreur d'entrée/sortie: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("Format de fichier invalide")]
-    InvalidFormat,
-}
+use crate::error::DecompressionError;
 
 pub struct DecompressionOptions {
     pub input_path: PathBuf,
@@ -27,9 +21,49 @@ impl Default for DecompressionOptions {
     }
 }
 
-fn sanitize_path(path: &str) -> String {
-    // Remplacer les caractères invalides pour Windows
-    path.replace(['<', '>', ':', '"', '/', '\\', '|', '?', '*'], "_")
+fn sanitize_path(path: &str) -> Result<PathBuf> {
+    // Validate and sanitize path to prevent path traversal attacks
+    let path = path.trim();
+    
+    // Reject empty paths
+    if path.is_empty() {
+        return Err(DecompressionError::InvalidFormat.into());
+    }
+    
+    // Reject absolute paths
+    if path.starts_with('/') || path.starts_with('\\') || path.contains(':') {
+        return Err(DecompressionError::InvalidFormat.into());
+    }
+    
+    // Split path into components and validate each one
+    let components: Vec<&str> = path.split(['/', '\\']).collect();
+    let mut safe_components = Vec::new();
+    
+    for component in components {
+        // Reject dangerous components
+        if component == "." || component == ".." || component.is_empty() {
+            continue; // Skip dangerous components
+        }
+        
+        // Sanitize component by removing invalid characters
+        let sanitized = component.replace(['<', '>', ':', '"', '|', '?', '*'], "_");
+        if !sanitized.is_empty() {
+            safe_components.push(sanitized);
+        }
+    }
+    
+    // Ensure we have at least one valid component
+    if safe_components.is_empty() {
+        return Err(DecompressionError::InvalidFormat.into());
+    }
+    
+    // Build safe path
+    let mut safe_path = PathBuf::new();
+    for component in safe_components {
+        safe_path.push(component);
+    }
+    
+    Ok(safe_path)
 }
 
 pub fn decompress_archive(options: &DecompressionOptions) -> Result<()> {
@@ -85,9 +119,18 @@ pub fn decompress_archive(options: &DecompressionOptions) -> Result<()> {
             .map_err(|_| DecompressionError::InvalidFormat)?;
         println!("Lecture du fichier : {} (offset: {})", path_str, offset);
         
-        // Nettoyer le chemin pour Windows
-        let sanitized_path = sanitize_path(&path_str);
+        // Sanitize path to prevent path traversal attacks
+        let sanitized_path = sanitize_path(&path_str)?;
         let file_path = options.output_path.join(&sanitized_path);
+        
+        // Additional security check: ensure the final path is within output directory
+        let canonical_output = options.output_path.canonicalize()
+            .context("Failed to canonicalize output path")?;
+        if let Ok(canonical_file) = file_path.canonicalize() {
+            if !canonical_file.starts_with(&canonical_output) {
+                return Err(DecompressionError::InvalidFormat.into());
+            }
+        }
         println!("Chemin complet : {:?}", file_path);
 
         // Créer les dossiers parents si nécessaire
