@@ -39,7 +39,7 @@ zippypack/
 ## 🔧 Installation
 
 ```bash
-git clone https://github.com/votre-username/zippypack.git
+git clone https://github.com/kamionn/zippypack.git
 cd zippypack
 cargo build --release
 ```
@@ -128,7 +128,7 @@ cargo run --bin basic_usage
 
 ## 🤝 Contribution
 
-Les contributions sont les bienvenues ! Consultez les [issues](https://github.com/votre-username/zippypack/issues) pour les tâches en cours.
+Les contributions sont les bienvenues ! Consultez les [issues](https://github.com/kamionn/zippypack/issues) pour les tâches en cours.
 
 ## 📄 Licence
 
