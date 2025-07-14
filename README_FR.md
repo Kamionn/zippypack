@@ -128,7 +128,7 @@ cargo run --bin basic_usage
 
 ## 🤝 Contribution
 
-Les contributions sont les bienvenues ! Consultez les [issues](https://github.com/votre-username/zippypack/issues) pour les tâches en cours.
+Les contributions sont les bienvenues ! Consultez les [issues](https://github.com/Kamionn/zippypack/issues) pour les tâches en cours.
 
 ## 📄 Licence
 
