@@ -2,7 +2,7 @@ use std::fs::{self, File};
 use std::io::{Read, Write, Cursor};
 use std::path::PathBuf;
 use anyhow::{Result, Context};
-use log::info;
+use tracing::info;
 use zstd::decode_all;
 
 use crate::error::DecompressionError;

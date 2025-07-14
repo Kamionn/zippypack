@@ -16,7 +16,7 @@ use std::fs::{self, File};
 use std::io::{Read, Write, BufReader, BufWriter, Seek, SeekFrom};
 use std::path::PathBuf;
 use anyhow::Result;
-use log::info;
+use tracing::info;
 use walkdir::WalkDir;
 use zstd::{encode_all, decode_all};
 

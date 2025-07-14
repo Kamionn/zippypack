@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use rayon::prelude::*;
 use walkdir::WalkDir;
-use log::{info, warn};
+use tracing::{info, warn};
 use std::io::Cursor;
 use zstd::encode_all;
 use std::io::Read;

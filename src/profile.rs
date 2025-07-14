@@ -1,5 +1,5 @@
 use std::path::Path;
-use log::info;
+use tracing::info;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(dead_code)] // Used by compress.rs
