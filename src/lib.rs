@@ -16,5 +16,7 @@ pub mod profile;
 pub mod error;
 pub mod decompress;
 pub mod image;
+pub mod config;
+pub mod metrics;
 
 // Tests are located in individual modules 
