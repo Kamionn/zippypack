@@ -6,7 +6,6 @@ use std::sync::Arc;
 use rayon::prelude::*;
 use walkdir::WalkDir;
 use log::{info, warn};
-use thiserror::Error;
 use std::io::Cursor;
 use zstd::encode_all;
 use std::io::Read;
@@ -15,11 +14,7 @@ use zstd::dict::from_samples;
 
 use crate::profile::{detect_profile, CompressionProfile};
 
-#[derive(Error, Debug)]
-pub enum CompressionError {
-    #[error("Erreur d'entrée/sortie: {0}")]
-    IoError(#[from] std::io::Error),
-}
+use crate::error::CompressionError;
 
 #[derive(Debug)]
 pub struct CompressionOptions {
@@ -67,11 +62,11 @@ pub fn compress_folder(options: &CompressionOptions) -> Result<(), CompressionEr
     let mut files_to_compress = Vec::new();
 
     for entry in WalkDir::new(&options.input_path) {
-        let entry = entry.map_err(|e| CompressionError::IoError(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+        let entry = entry.map_err(|e| CompressionError::Io(std::io::Error::other(e)))?;
         if entry.file_type().is_file() {
             let path = entry.path();
             let relative_path = path.strip_prefix(&options.input_path)
-                .map_err(|e| CompressionError::IoError(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+                .map_err(|e| CompressionError::Io(std::io::Error::other(e)))?;
             println!("Fichier trouvé : {:?} (chemin relatif : {:?})", path, relative_path);
             
             let profile = detect_profile(path);
@@ -95,7 +90,7 @@ pub fn compress_folder(options: &CompressionOptions) -> Result<(), CompressionEr
     let compression_dicts = Arc::new(dictionaries);
     let results: Vec<Result<(PathBuf, Vec<u8>), CompressionError>> = files_to_compress.par_iter()
         .map(|(path, relative_path, profile)| {
-            println!("Compression de {:?}", path);
+            println!("Compressing file: {path:?}");
             let dict = compression_dicts.get(profile);
             process_file(path, dict, profile.get_compression_level())
                 .map(|data| (relative_path.clone(), data))
@@ -143,7 +138,7 @@ fn process_file(
     _dict: Option<&Vec<u8>>,
     level: i32,
 ) -> Result<Vec<u8>, CompressionError> {
-    let content = fs::read(path).map_err(|e| CompressionError::IoError(e))?;
+    let content = fs::read(path).map_err(CompressionError::Io)?;
     let file_type = detect_file_type(path);
     let processed_content = match file_type {
         FileType::Text | FileType::Json | FileType::Lua | FileType::Python => {
@@ -162,7 +157,7 @@ fn process_file(
         FileType::Other => content,
     };
     let compressed = encode_all(Cursor::new(processed_content), level)
-        .map_err(|e| CompressionError::IoError(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+        .map_err(|e| CompressionError::Io(std::io::Error::other(e)))?;
     Ok(compressed)
 }
 
