@@ -15,6 +15,7 @@ mod compress;
 mod decompress;
 mod profile;
 mod image;
+mod error;
 
 use std::path::PathBuf;
 use clap::{Parser, Subcommand};
