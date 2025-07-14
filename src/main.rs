@@ -16,74 +16,88 @@ mod decompress;
 mod profile;
 mod image;
 mod error;
+mod config;
+mod metrics;
 
 use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 use anyhow::Result;
-use log::LevelFilter;
+use tracing::{info, error, warn};
+use tracing_subscriber::{fmt, EnvFilter};
 use compress::{compress_directory, CompressionOptions};
 use decompress::{decompress_archive, DecompressionOptions};
 use image::{create_image, extract_image, ImageOptions, ExtractOptions};
+use config::Config;
+use metrics::Metrics;
 
 #[derive(Parser)]
 #[command(name = "zippy")]
-#[command(about = "Outil de compression .zpp rapide et intelligent", long_about = None)]
+#[command(about = "Modern compression tool with deduplication", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
 
-    /// Niveau de verbosité (0-4)
+    /// Verbosity level (0-4)
     #[arg(short, long, default_value = "2")]
     verbosity: u8,
+    
+    /// Configuration file path
+    #[arg(short, long)]
+    config: Option<PathBuf>,
+    
+    /// Number of threads (overrides config file)
+    #[arg(long)]
+    threads: Option<usize>,
+    
+    /// Enable detailed metrics output
+    #[arg(long)]
+    metrics: bool,
 }
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Compresser un dossier
+    /// Compress a directory
     Compress {
-        /// Dossier à compresser
+        /// Directory to compress
         #[arg(short, long)]
         input: PathBuf,
-        /// Fichier de sortie .zpp
+        /// Output .zpp file
         #[arg(short, long)]
         output: PathBuf,
-        /// Nombre de threads à utiliser
-        #[arg(short, long)]
-        threads: Option<usize>,
-        /// Niveau de compression (1-22)
-        #[arg(short = 'l', long, default_value = "22")]
-        level: i32,
-        /// Mode solid (compresser en un seul flux)
-        #[arg(long, default_value_t = false)]
+        /// Compression level (1-22, overrides config)
+        #[arg(short = 'l', long)]
+        level: Option<i32>,
+        /// Solid mode (compress as single stream)
+        #[arg(long)]
         solid: bool,
     },
-    /// Décompresser une archive .zpp
+    /// Decompress a .zpp archive
     Decompress {
-        /// Archive .zpp à décompresser
+        /// .zpp archive to decompress
         #[arg(short, long)]
         input: PathBuf,
-        /// Dossier de sortie
+        /// Output directory
         #[arg(short, long)]
         output: PathBuf,
     },
-    /// Créer une image système avec déduplication
+    /// Create system image with deduplication
     CreateImage {
-        /// Dossier à capturer
+        /// Directory to capture
         #[arg(short, long)]
         input: PathBuf,
-        /// Fichier image .zpak
+        /// Output .zpak image file
         #[arg(short, long)]
         output: PathBuf,
-        /// Niveau de compression (1-22)
-        #[arg(short = 'l', long, default_value = "22")]
-        level: i32,
+        /// Compression level (1-22, overrides config)
+        #[arg(short = 'l', long)]
+        level: Option<i32>,
     },
-    /// Extraire une image système
+    /// Extract system image
     ExtractImage {
-        /// Fichier image .zpak
+        /// .zpak image file to extract
         #[arg(short, long)]
         input: PathBuf,
-        /// Dossier de sortie
+        /// Output directory
         #[arg(short, long)]
         output: PathBuf,
     },
@@ -92,30 +106,83 @@ enum Commands {
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    // Configuration du logging
+    // Initialize structured logging
     let log_level = match cli.verbosity {
-        0 => LevelFilter::Error,
-        1 => LevelFilter::Warn,
-        2 => LevelFilter::Info,
-        3 => LevelFilter::Debug,
-        _ => LevelFilter::Trace,
+        0 => "error",
+        1 => "warn", 
+        2 => "info",
+        3 => "debug",
+        _ => "trace",
     };
-    env_logger::Builder::new()
-        .filter_level(log_level)
+    
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::new(format!("zippy={}", log_level)))
+        .with_target(false)
         .init();
 
+    info!(version = env!("CARGO_PKG_VERSION"), "ZippyPack starting");
+
+    // Load configuration
+    let mut config = if let Some(config_path) = &cli.config {
+        info!(config_file = %config_path.display(), "Loading configuration file");
+        Config::from_file(config_path).unwrap_or_else(|e| {
+            warn!(error = %e, "Failed to load config file, using defaults");
+            Config::default()
+        })
+    } else {
+        Config::default()
+    };
+
+    // Merge CLI arguments with config
+    config.merge_with_cli(None, cli.threads, cli.verbosity >= 3);
+
+    // Initialize metrics if requested
+    let metrics = if cli.metrics {
+        Some(Metrics::new())
+    } else {
+        None
+    };
+
+    info!(
+        compression_level = config.compression_level,
+        max_threads = config.max_threads,
+        "Configuration loaded"
+    );
+
     match &cli.command {
-        Commands::Compress { input, output, threads, level, solid } => {
+        Commands::Compress { input, output, level, solid } => {
+            let final_level = level.unwrap_or(config.compression_level);
+            info!(
+                input = %input.display(),
+                output = %output.display(),
+                level = final_level,
+                solid = solid,
+                "Starting compression"
+            );
+            
             let options = CompressionOptions {
                 input_path: input.clone(),
                 output_path: output.clone(),
-                threads: threads.unwrap_or_else(num_cpus::get),
-                level: *level,
+                threads: config.max_threads,
+                level: final_level,
                 solid: *solid,
             };
-            compress_directory(&options)?;
+            
+            if let Some(ref m) = metrics { m.start_compression(); }
+            let result = compress_directory(&options);
+            if let Some(ref m) = metrics { 
+                m.end_compression();
+                m.print_summary();
+            }
+            result?;
         }
         Commands::Decompress { input, output } => {
+            info!(
+                input = %input.display(),
+                output = %output.display(),
+                "Starting decompression"
+            );
+            
             let options = DecompressionOptions {
                 input_path: input.clone(),
                 output_path: output.clone(),
@@ -123,14 +190,35 @@ fn main() -> Result<()> {
             decompress_archive(&options)?;
         }
         Commands::CreateImage { input, output, level } => {
+            let final_level = level.unwrap_or(config.compression_level);
+            info!(
+                input = %input.display(),
+                output = %output.display(),
+                level = final_level,
+                "Creating system image"
+            );
+            
             let options = ImageOptions {
                 input_path: input.clone(),
                 output_path: output.clone(),
-                compression_level: *level,
+                compression_level: final_level,
             };
-            create_image(&options)?;
+            
+            if let Some(ref m) = metrics { m.start_compression(); }
+            let result = create_image(&options);
+            if let Some(ref m) = metrics { 
+                m.end_compression();
+                m.print_summary();
+            }
+            result?;
         }
         Commands::ExtractImage { input, output } => {
+            info!(
+                input = %input.display(),
+                output = %output.display(),
+                "Extracting system image"
+            );
+            
             let options = ExtractOptions {
                 image_path: input.clone(),
                 output_path: output.clone(),
@@ -139,5 +227,6 @@ fn main() -> Result<()> {
         }
     }
 
+    info!("Operation completed successfully");
     Ok(())
 }
