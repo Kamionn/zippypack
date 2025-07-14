@@ -1,0 +1,17 @@
+# ZippyPack Configuration File
+# This file contains default settings for ZippyPack compression tool
+
+# Default compression level (1-22, higher = better compression but slower)
+compression_level = 22
+
+# Maximum number of threads to use (0 = auto-detect)
+max_threads = 0
+
+# Block size for deduplication in bytes (default: 64KB)
+block_size = 65536
+
+# Memory limit for compression in MB (default: 1GB)
+memory_limit = 1024
+
+# Enable verbose logging by default
+verbose = false
