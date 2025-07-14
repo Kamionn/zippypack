@@ -39,7 +39,7 @@ zippypack/
 ## 🔧 Installation
 
 ```bash
-git clone https://github.com/votre-username/zippypack.git
+git clone https://github.com/kamionn/zippypack.git
 cd zippypack
 cargo build --release
 ```
