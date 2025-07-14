@@ -1,154 +1,158 @@
 # ZippyPack
 
-**ZippyPack** est un outil de compression avancé en Rust qui utilise l'algorithme Zstandard avec déduplication par blocs et format d'image système.
+**ZippyPack** is an advanced Rust compression tool that leverages Zstandard algorithm with block-level deduplication and system image format for superior compression ratios.
 
-## 🚀 Fonctionnalités
+## 🚀 Features
 
-- **Compression zstd** : Utilise l'algorithme Zstandard moderne pour un équilibre optimal vitesse/ratio
-- **Déduplication par blocs** : Stocke une seule fois les blocs de données identiques (64KB)
-- **Format d'image système** : Capture complète de dossiers avec accès instantané
-- **Compression contextuelle** : Optimisations spécifiques par type de fichier
-- **Accès temps réel** : Progression détaillée avec vitesse et ETA
-- **Cross-platform** : Compatible Linux, macOS et Windows
+- **Zstd Compression**: Modern Zstandard algorithm for optimal speed/ratio balance
+- **Block Deduplication**: Store identical data blocks only once (64KB chunks)
+- **System Image Format**: Complete folder snapshots with instant access
+- **Context-Aware Compression**: File-type specific optimizations
+- **Real-time Progress**: Detailed progress with speed and ETA
+- **Cross-platform**: Compatible with Linux, macOS, and Windows
 
-## 📊 Performances
+## 📊 Performance
 
-Sur un dataset de 505 fichiers de code source :
-- **Ratio de compression** : 95.67% (5.1 MB → 222 KB)
-- **Comparaison** : 6% d'écart avec WinRAR, 12% mieux que 7-Zip
-- **Vitesse** : ~0.2 MB/s avec compression maximale
+On a dataset of 505 source code files:
+- **Compression Ratio**: 95.67% (5.1 MB → 222 KB)
+- **Comparison**: 6% gap with WinRAR, 12% better than 7-Zip
+- **Speed**: ~0.2 MB/s with maximum compression
 
-## 📁 Structure du projet
+## 📁 Project Structure
 
 ```
 zippypack/
-├── src/                    # Code source principal
-│   ├── main.rs            # Interface CLI
-│   ├── lib.rs             # Bibliothèque publique
-│   ├── compress.rs        # Compression traditionnelle
-│   ├── decompress.rs      # Décompression
-│   ├── image.rs           # Système d'images avec déduplication
-│   ├── profile.rs         # Profils de compression
-│   └── error.rs           # Gestion d'erreurs
-├── examples/              # Exemples d'utilisation
-├── tools/                 # Utilitaires de développement
-├── docs/                  # Documentation technique
-└── README.md             # Ce fichier
+├── src/                    # Main source code
+│   ├── main.rs            # CLI interface
+│   ├── lib.rs             # Public library
+│   ├── compress.rs        # Traditional compression
+│   ├── decompress.rs      # Decompression
+│   ├── image.rs           # Image system with deduplication
+│   ├── profile.rs         # Compression profiles
+│   └── error.rs           # Error handling
+├── examples/              # Usage examples
+├── tools/                 # Development utilities
+├── docs/                  # Technical documentation
+└── README.md             # This file
 ```
 
 ## 🔧 Installation
 
 ```bash
-git clone https://github.com/votre-username/zippypack.git
+git clone https://github.com/your-username/zippypack.git
 cd zippypack
 cargo build --release
 ```
 
-## 📖 Utilisation
+## 📖 Usage
 
-### Compression classique (.zpp)
+### Classic Compression (.zpp)
 ```bash
-# Comprimer un dossier
-cargo run --release -- compress --input dossier/ --output archive.zpp --level 22
+# Compress a folder
+cargo run --release -- compress --input folder/ --output archive.zpp --level 22
 
-# Décompresser une archive
-cargo run --release -- decompress --input archive.zpp --output dossier_restauré/
+# Decompress an archive
+cargo run --release -- decompress --input archive.zpp --output restored_folder/
 ```
 
-### Image système (.zpak)
+### System Image (.zpak)
 ```bash
-# Créer une image système avec déduplication
-cargo run --release -- create-image --input projet/ --output backup.zpak --level 22
+# Create system image with deduplication
+cargo run --release -- create-image --input project/ --output backup.zpak --level 22
 
-# Extraire une image système
-cargo run --release -- extract-image --input backup.zpak --output projet_restauré/
+# Extract system image
+cargo run --release -- extract-image --input backup.zpak --output restored_project/
 ```
 
-### Options avancées
+### Advanced Options
 ```bash
-# Compression avec threads personnalisés
+# Compression with custom threads
 cargo run --release -- compress --input src/ --output code.zpp --threads 8 --level 15
 
-# Mode solid pour meilleure compression
+# Solid mode for better compression
 cargo run --release -- compress --input data/ --output data.zpp --solid --level 22
 ```
 
 ## 🏗️ Architecture
 
-### Modules principaux
-- **`compress.rs`** : Compression traditionnelle avec détection de types
-- **`decompress.rs`** : Décompression avec validation d'intégrité
-- **`image.rs`** : Système d'images avec déduplication par blocs
-- **`profile.rs`** : Profils de compression par type de fichier
-- **`error.rs`** : Gestion d'erreurs typée
+### Core Modules
+- **`compress.rs`**: Traditional compression with type detection
+- **`decompress.rs`**: Decompression with integrity validation
+- **`image.rs`**: Image system with block-level deduplication
+- **`profile.rs`**: File-type compression profiles
+- **`error.rs`**: Typed error handling
 
-### Format d'archive (.zpak)
-1. **Header** : Version, métadonnées, statistiques
-2. **Index des blocs** : Hash et position de chaque bloc unique
-3. **Données compressées** : Blocs zstd dédupliqués
-4. **Métadonnées fichiers** : Arborescence et références aux blocs
+### Archive Format (.zpak)
+1. **Header**: Version, metadata, statistics
+2. **Block Index**: Hash and position of each unique block
+3. **Compressed Data**: Deduplicated zstd blocks
+4. **File Metadata**: Directory tree and block references
 
-## 🧪 Tests
+## 🧪 Testing
 
 ```bash
-# Tests unitaires (dans les modules)
+# Unit tests (in modules)
 cargo test
 
-# Tests avec verbose
+# Verbose tests
 cargo test -- --nocapture
 
-# Exemple d'utilisation
+# Usage example
 cargo run --bin basic_usage
 ```
 
-## 📈 Avantages vs concurrence
+## 📈 Advantages vs Competition
 
-| Fonctionnalité | ZippyPack | WinRAR | 7-Zip |
-|---------------|-----------|--------|-------|
-| Déduplication | ✅ | ❌ | ❌ |
-| Accès instantané | ✅ | ❌ | ❌ |
-| Progression temps réel | ✅ | ❌ | ❌ |
-| Format moderne | ✅ | ❌ | ❌ |
+| Feature | ZippyPack | WinRAR | 7-Zip |
+|---------|-----------|--------|-------|
+| Deduplication | ✅ | ❌ | ❌ |
+| Instant Access | ✅ | ❌ | ❌ |
+| Real-time Progress | ✅ | ❌ | ❌ |
+| Modern Format | ✅ | ❌ | ❌ |
 | Cross-platform | ✅ | ❌ | ✅ |
 
-## 🔬 Cas d'usage optimaux
+## 🔬 Optimal Use Cases
 
-- **Projets de développement** : node_modules, target/, build/
-- **Sauvegardes incrémentales** : Déduplication massive
-- **Assets de jeux** : Textures et modèles similaires
-- **Archives de documentation** : Fichiers avec patterns répétitifs
+- **Development Projects**: node_modules, target/, build/
+- **Incremental Backups**: Massive deduplication benefits
+- **Game Assets**: Similar textures and models
+- **Documentation Archives**: Files with repetitive patterns
 
 ## 🛣️ Roadmap
 
-- [ ] Compression incrémentale
-- [ ] Montage FUSE pour accès direct
-- [ ] Interface graphique
-- [ ] Intégration CI/CD
-- [ ] Synchronisation cloud optimisée
+- [ ] Incremental compression
+- [ ] FUSE mounting for direct access
+- [ ] Graphical interface
+- [ ] CI/CD integration
+- [ ] Optimized cloud synchronization
 
-## 🤝 Contribution
+## 🤝 Contributing
 
-Les contributions sont les bienvenues ! Consultez les [issues](https://github.com/votre-username/zippypack/issues) pour les tâches en cours.
+Contributions are welcome! Check out the [issues](https://github.com/your-username/zippypack/issues) for ongoing tasks.
 
-## 📄 Licence
+## 📄 License
 
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## 🏆 Benchmarks
 
 ```bash
-# Générer des fichiers de test
+# Generate test files
 rustc tools/generate_test_files.rs && ./generate_test_files
 
-# Tester la compression
+# Test compression
 cargo run --release -- create-image --input test_files --output benchmark.zpak --level 22
 
-# Comparer avec d'autres outils
+# Compare with other tools
 # WinRAR: 268 KB
 # 7-Zip: 324 KB  
 # ZippyPack: 284 KB
 ```
 
+## 🌍 Translations
+
+- [Français (French)](README_FR.md)
+
 ---
 
-**ZippyPack** : Parce que chaque byte compte. 🚀
+**ZippyPack**: Because every byte counts. 🚀
