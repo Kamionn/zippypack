@@ -143,10 +143,10 @@ rustc tools/generate_test_files.rs && ./generate_test_files
 # Test compression
 cargo run --release -- create-image --input test_files --output benchmark.zpak --level 22
 
-# Compare with other tools
-# WinRAR: 268 KB
-# 7-Zip: 324 KB  
-# ZippyPack: 284 KB
+# Compare with other tools on the generated dataset
+# WinRAR: 268 KB (best compression ratio)
+# 7-Zip: 324 KB
+# ZippyPack: 284 KB (slightly larger than WinRAR but with deduplication and fast extraction)
 ```
 
 ## 🌍 Translations
@@ -154,5 +154,6 @@ cargo run --release -- create-image --input test_files --output benchmark.zpak -
 - [Français (French)](README_FR.md)
 
 ---
+
 
 **ZippyPack**: Because every byte counts. 🚀
